@@ -1,5 +1,4 @@
-# Run this file once: python train.py
-
+# IMDB_Sentiment_Analysis
 import os, re, pickle, warnings
 import pandas as pd
 import numpy as np
@@ -19,7 +18,6 @@ from sklearn.metrics import (accuracy_score, precision_score, recall_score,
                              f1_score, confusion_matrix, roc_curve, auc)
 warnings.filterwarnings("ignore")
 
-# ── Stopwords (keep negations) ────────────────────────────────────────────────
 STOP_WORDS = set(stopwords.words("english"))
 negations = {"not", "no", "nor", "ain", "aren", "couldn", "didn", "doesn",
              "hadn", "hasn", "haven", "isn", "mightn", "mustn", "needn",
@@ -27,7 +25,6 @@ negations = {"not", "no", "nor", "ain", "aren", "couldn", "didn", "doesn",
 STOP_WORDS -= negations
 lemmatizer = WordNetLemmatizer()
 
-# ── Text cleaner ──────────────────────────────────────────────────────────────
 def clean_text(text):
     text = str(text).lower()
     text = re.sub(r"<.*?>", " ", text)
@@ -37,7 +34,6 @@ def clean_text(text):
               if t not in STOP_WORDS and len(t) > 2]
     return " ".join(tokens)
 
-# ── Load CSV ──────────────────────────────────────────────────────────────────
 for fname in ["IMDB_Dataset.csv", "IMDB Dataset.csv"]:
     if os.path.exists(fname):
         CSV_PATH = fname
@@ -55,11 +51,9 @@ df["review"] = df["review"].astype(str)
 df["label"]  = (df["sentiment"] == "positive").astype(int)
 print(f"  {len(df):,} reviews - {df.label.sum():,} positive, {(~df.label.astype(bool)).sum():,} negative")
 
-# -- Clean -------------------------------------------------------------------
 print("Cleaning text...")
 df["clean"] = df["review"].apply(clean_text)
 
-# -- TF-IDF -----------------------------------------------------------------
 print("Vectorizing...")
 X = list(df["clean"])
 y = np.array(df["label"].tolist(), dtype=np.int32)
@@ -71,14 +65,12 @@ tfidf = TfidfVectorizer(max_features=10_000, ngram_range=(1, 2))
 X_tr = tfidf.fit_transform(X_train)
 X_te = tfidf.transform(X_test)
 
-# -- Train ------------------------------------------------------------------
 print("Training models...")
 model_defs = {
     "Logistic Regression": LogisticRegression(max_iter=1000, random_state=42, C=1.0),
     "Multinomial Naive Bayes": MultinomialNB(alpha=0.1),
     "Linear SVM": SGDClassifier(loss="modified_huber", random_state=42, max_iter=1000),
 }
-# Note: using modified_huber loss for SVM so predict_proba is available
 
 metrics, proba_scores = {}, {}
 trained_models = {}
@@ -93,14 +85,12 @@ for name, model in model_defs.items():
         "Recall":    round(recall_score(y_test, preds), 4),
         "F1-Score":  round(f1_score(y_test, preds), 4),
     }
-    # probability / decision score for ROC
     if hasattr(model, "predict_proba"):
         proba_scores[name] = model.predict_proba(X_te)[:, 1]
     else:
         s = model.decision_function(X_te)
         proba_scores[name] = (s - s.min()) / (s.max() - s.min() + 1e-9)
 
-# ── Select best ───────────────────────────────────────────────────────────────
 best_name = max(metrics, key=lambda k: metrics[k]["F1-Score"])
 best_model = trained_models[best_name]
 best_preds  = best_model.predict(X_te)
@@ -114,17 +104,14 @@ for name, m in metrics.items():
           f"{m['Recall']:>6.4f} {m['F1-Score']:>6.4f}")
 print(f"\nBest model: {best_name} (F1 = {metrics[best_name]['F1-Score']:.4f})")
 
-# ── ROC data ──────────────────────────────────────────────────────────────────
 roc_data = {}
 for name, scores in proba_scores.items():
     fpr, tpr, _ = roc_curve(y_test, scores)
     roc_data[name] = {"fpr": fpr.tolist(), "tpr": tpr.tolist(),
                       "auc": round(auc(fpr, tpr), 4)}
 
-# ── Confusion matrix ──────────────────────────────────────────────────────────
 cm = confusion_matrix(y_test, best_preds)
 
-# ── Word frequencies ──────────────────────────────────────────────────────────
 def top_words(df_sub, n=20):
     corpus = " ".join(df_sub["clean"].values)
     return Counter(corpus.split()).most_common(n)
@@ -132,30 +119,24 @@ def top_words(df_sub, n=20):
 top_pos = top_words(df[df.sentiment == "positive"])
 top_neg = top_words(df[df.sentiment == "negative"])
 
-# ── Sample reviews for Tab 1 ──────────────────────────────────────────────────
 sample_df = pd.concat([
     df[df.sentiment == "positive"].sample(3, random_state=1),
     df[df.sentiment == "negative"].sample(2, random_state=1),
 ]).sample(frac=1, random_state=7)[["review", "sentiment"]].reset_index(drop=True)
 
-# ── Review lengths ────────────────────────────────────────────────────────────
 df["rl"] = df["review"].apply(lambda t: len(t.split()))
 rl_pos = df[df.sentiment == "positive"]["rl"].clip(0, 1000).tolist()
 rl_neg = df[df.sentiment == "negative"]["rl"].clip(0, 1000).tolist()
 
-# ── Before/after sample ───────────────────────────────────────────────────────
 sample_idx = 42
 sample_raw   = df["review"].iloc[sample_idx]
 sample_clean = df["clean"].iloc[sample_idx]
 
-# ── Class counts ─────────────────────────────────────────────────────────────
 class_counts = {"positive": int((df.sentiment == "positive").sum()),
                 "negative": int((df.sentiment == "negative").sum())}
 
-# ── TF-IDF feature names (for influential words in predictor) ─────────────────
 feature_names = tfidf.get_feature_names_out().tolist()
 
-# ── Pack everything ───────────────────────────────────────────────────────────
 model_results = {
     "best_model_name": best_name,
     "metrics":         metrics,
@@ -173,7 +154,6 @@ model_results = {
     "feature_names":   feature_names,
 }
 
-# -- Save pickles ------------------------------------------------------------
 print("\nSaving pickle files...")
 with open("vectorizer.pkl",   "wb") as f: pickle.dump(tfidf,        f)
 with open("best_model.pkl",   "wb") as f: pickle.dump(best_model,   f)
