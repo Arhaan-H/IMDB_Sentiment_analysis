@@ -10,7 +10,7 @@ A full end-to-end ML sentiment analysis pipeline trained on the **IMDB 50K Movie
 
 Download the IMDB 50K Movie Reviews dataset and place it in the project root as `IMDB_Dataset.csv`:
 
-👉 **[Download IMDB Dataset from Kaggle](<ADD_KAGGLE_LINK_HERE>)**
+👉 **[Download IMDB Dataset from Kaggle](https://www.kaggle.com/datasets/lakshmi25npathi/imdb-dataset-of-50k-movie-reviews?resource=download)**
 
 > The dataset file is **not included** in this repository due to its size (~66 MB). You must download it separately before running `train.py`.
 
