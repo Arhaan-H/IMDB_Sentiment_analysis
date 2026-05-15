@@ -1,0 +1,40 @@
+# Dataset (large file, user must download from Kaggle)
+IMDB_Dataset.csv
+IMDB Dataset.csv
+
+# Generated pickle files (small enough to be hosted)
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+.Python
+
+# Virtual environments
+venv/
+env/
+.env/
+.venv/
+
+# Streamlit cache
+.streamlit/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Logs
+*.log
+
+# Qodo
+.qodo/
